@@ -1,69 +1,144 @@
 # Finance Dashboard UI
 
-Frontend-only finance dashboard built from the PRD using React, JavaScript, Tailwind CSS, shadcn-style UI components, Recharts, and Zustand.
+> Analyze spending, monitor balances, and manage transactions with a fast, interactive dashboard.
 
-## Stack
+A frontend-only finance dashboard built with React and Vite. It includes summary KPIs, interactive charts, transaction search and filtering, role-based actions, recurring bill forecasting, budget tracking, and export support.
 
-- React + Vite
-- Tailwind CSS v4
-- Zustand (with localStorage persistence)
-- Recharts
-- shadcn-style component primitives
+---
 
-## Run
+## Demo
+
+Run locally:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Quality checks:
+---
+
+## Features
+
+| Area | Feature | Description |
+|---|---|---|
+| Overview | Summary Cards | Total balance, income, and expenses with trend comparison |
+| Charts | Balance Trend | Monthly running balance line chart based on active filters |
+| Charts | Spending Breakdown | Category-wise expense pie chart with click-to-filter behavior |
+| Transactions | Advanced Filtering | Search by description/category, type filter, category filter, date range |
+| Transactions | Sorting and Pagination | Sort by date/amount and browse data with page controls |
+| Access Control | Role-Based UI | Viewer/Admin role switch; Admin can add, edit, and delete transactions |
+| Planning | Budget vs Actual | Compare monthly category budgets with actual expenses |
+| Planning | Upcoming Bills | 30-day recurring transaction forecast |
+| Planning | Cashflow Heatmap | Daily expense intensity view for the active month |
+| Export | Data Export | Download filtered transactions as CSV or JSON |
+| UX | Persistent Preferences | Theme, filters, role, transactions, and budgets are persisted locally |
+
+---
+
+## Architecture
+
+Single-page React application with centralized Zustand state. UI modules consume derived data from finance utility functions, keeping business logic out of presentational components.
+
+```text
+User Actions (filters, role switch, edits)
+		 |
+		 v
+	   Zustand Store
+   (transactions, filters, role, budgets, theme)
+		 |
+		 v
+	 Finance Utilities
+ (summary, trends, breakdown, insights,
+  budget-vs-actual, recurring forecast, heatmap)
+		 |
+		 v
+	   UI Components
+  (cards, charts, table, planning modules)
+		 |
+		 v
+	 Export + Persistence
+     (CSV/JSON + localStorage)
+```
+
+---
+
+## Quick Start
+
+### 1. Clone and install
+
+```bash
+git clone https://github.com/your-github-username/finance-dashboard-ui
+cd finance-dashboard-ui
+npm install
+```
+
+### 2. Start development server
+
+```bash
+npm run dev
+```
+
+### 3. Run quality checks
 
 ```bash
 npm run lint
 npm run build
 ```
 
-## PRD Phase-wise Delivery
+---
 
-### Phase 1: Setup & Scaffolding
+## Tech Stack
 
-- Vite React app scaffolded
-- Tailwind + alias configuration completed
-- Folder structure created: `components/`, `store/`, `data/`, `lib/`
-- Seed data (25 transactions over 3 months and multiple categories)
+- React 19 + Vite
+- JavaScript (ES modules)
+- Tailwind CSS v4
+- Recharts
+- Zustand (with persistence)
+- Radix UI primitives + custom UI components
+- react-day-picker for date selection
 
-### Phase 2: Dashboard Overview
+---
 
-- Summary cards: balance, income, expenses
-- Line chart: balance trend over time
-- Donut chart: expense category breakdown
-- Empty-state handling for chart data
+## Project Structure
 
-### Phase 3: Transactions Section
+```text
+finance-dashboard-ui/
+|-- public/
+|   `-- favicon.svg
+|-- src/
+|   |-- components/
+|   |   |-- dashboard/
+|   |   |-- transactions/
+|   |   `-- ui/
+|   |-- data/
+|   |   `-- transactions.js
+|   |-- lib/
+|   |   |-- finance.js
+|   |   `-- utils.js
+|   |-- store/
+|   |   `-- useFinanceStore.js
+|   |-- App.jsx
+|   |-- index.css
+|   `-- main.jsx
+|-- PRD_ Finance Dashboard UI.md
+|-- components.json
+|-- eslint.config.js
+|-- jsconfig.json
+|-- package.json
+`-- vite.config.js
+```
 
-- Transaction table with date/amount/category/type
-- Search by description
-- Filter by type and category
-- Sorting by date and amount
-- Empty-state UI for no matches
+---
 
-### Phase 4: Role-Based UI + Insights
+## Known Limitations
 
-- Role switcher (Viewer/Admin)
-- Admin-only controls: add, edit, delete transactions
-- Insights cards:
-	- Highest spending category
-	- Month-over-month comparison
-	- Average transaction and monthly activity
+- The project is frontend-only and uses seeded/mock transactions.
+- Data persistence is browser-local (localStorage), not server-backed.
+- Multi-user workflows and backend authentication are not implemented.
+- Forecasting is based on transactions marked as recurring; it is a heuristic, not a predictive model.
 
-### Phase 5: Optional Enhancements
+---
 
-- Dark mode toggle
-- localStorage persistence for role/theme/filters/transactions
-- Export filtered transactions as CSV and JSON
+## License
 
-## Notes
-
-- This project is intentionally frontend-only and uses mock data.
-- Charts and insights are computed from currently filtered transactions.
+MIT
