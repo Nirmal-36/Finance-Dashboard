@@ -1,16 +1,69 @@
-# React + Vite
+# Finance Dashboard UI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend-only finance dashboard built from the PRD using React, JavaScript, Tailwind CSS, shadcn-style UI components, Recharts, and Zustand.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React + Vite
+- Tailwind CSS v4
+- Zustand (with localStorage persistence)
+- Recharts
+- shadcn-style component primitives
 
-## React Compiler
+## Run
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm install
+npm run dev
+```
 
-## Expanding the ESLint configuration
+Quality checks:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm run lint
+npm run build
+```
+
+## PRD Phase-wise Delivery
+
+### Phase 1: Setup & Scaffolding
+
+- Vite React app scaffolded
+- Tailwind + alias configuration completed
+- Folder structure created: `components/`, `store/`, `data/`, `lib/`
+- Seed data (25 transactions over 3 months and multiple categories)
+
+### Phase 2: Dashboard Overview
+
+- Summary cards: balance, income, expenses
+- Line chart: balance trend over time
+- Donut chart: expense category breakdown
+- Empty-state handling for chart data
+
+### Phase 3: Transactions Section
+
+- Transaction table with date/amount/category/type
+- Search by description
+- Filter by type and category
+- Sorting by date and amount
+- Empty-state UI for no matches
+
+### Phase 4: Role-Based UI + Insights
+
+- Role switcher (Viewer/Admin)
+- Admin-only controls: add, edit, delete transactions
+- Insights cards:
+	- Highest spending category
+	- Month-over-month comparison
+	- Average transaction and monthly activity
+
+### Phase 5: Optional Enhancements
+
+- Dark mode toggle
+- localStorage persistence for role/theme/filters/transactions
+- Export filtered transactions as CSV and JSON
+
+## Notes
+
+- This project is intentionally frontend-only and uses mock data.
+- Charts and insights are computed from currently filtered transactions.

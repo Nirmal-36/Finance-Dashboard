@@ -16,7 +16,7 @@ export function BalanceTrendChart({ data }) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 12, right: 12, left: 4, bottom: 6 }}>
               <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-              <YAxis tickFormatter={(value) => `$${Math.round(value)}`} stroke="hsl(var(--muted-foreground))" fontSize={12} />
+              <YAxis tickFormatter={(value) => formatCurrency(value, { maximumFractionDigits: 0 })} stroke="hsl(var(--muted-foreground))" fontSize={12} />
               <Tooltip formatter={(value) => formatCurrency(value)} />
               <Line type="monotone" dataKey="balance" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
             </LineChart>

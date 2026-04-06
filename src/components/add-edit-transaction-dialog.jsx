@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -9,37 +9,29 @@ const initialForm = {
   amount: '',
   category: '',
   type: 'expense',
+  recurring: false,
 }
 
-export function AddEditTransactionDialog({ open, mode, transaction, categories, onClose, onSubmit }) {
-  const [form, setForm] = useState(initialForm)
+function getInitialForm(transaction) {
+  if (!transaction) {
+    return { ...initialForm, date: new Date().toISOString().slice(0, 10) }
+  }
+
+  return {
+    date: transaction.date,
+    description: transaction.description,
+    amount: String(transaction.amount),
+    category: transaction.category,
+    type: transaction.type,
+    recurring: Boolean(transaction.recurring),
+  }
+}
+
+export function AddEditTransactionDialog({ mode, transaction, categories, onClose, onSubmit }) {
+  const [form, setForm] = useState(() => getInitialForm(transaction))
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    if (!open) {
-      setForm(initialForm)
-      setError('')
-      return
-    }
-
-    if (transaction) {
-      setForm({
-        date: transaction.date,
-        description: transaction.description,
-        amount: String(transaction.amount),
-        category: transaction.category,
-        type: transaction.type,
-      })
-    } else {
-      setForm({ ...initialForm, date: new Date().toISOString().slice(0, 10) })
-    }
-  }, [open, transaction])
-
   const title = useMemo(() => (mode === 'edit' ? 'Edit transaction' : 'Add transaction'), [mode])
-
-  if (!open) {
-    return null
-  }
 
   function handleSubmit(event) {
     event.preventDefault()
@@ -62,6 +54,7 @@ export function AddEditTransactionDialog({ open, mode, transaction, categories, 
       amount,
       category: form.category,
       type: form.type,
+      recurring: form.recurring,
     })
 
     onClose()
@@ -140,6 +133,15 @@ export function AddEditTransactionDialog({ open, mode, transaction, categories, 
             </Select>
           </div>
         </div>
+
+        <label className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.recurring}
+            onChange={(event) => setForm((prev) => ({ ...prev, recurring: event.target.checked }))}
+          />
+          Mark this transaction as recurring (monthly)
+        </label>
 
         {error ? <p className="text-sm font-medium text-[hsl(var(--danger))]">{error}</p> : null}
 

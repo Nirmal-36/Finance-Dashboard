@@ -6,8 +6,19 @@ const defaultFilters = {
   type: 'all',
   category: 'all',
   search: '',
+  dateFrom: '',
+  dateTo: '',
   sortBy: 'date',
   sortOrder: 'desc',
+}
+
+const defaultBudgets = {
+  Groceries: 14000,
+  Rent: 70000,
+  Utilities: 8000,
+  Dining: 9000,
+  Entertainment: 7000,
+  Transport: 6000,
 }
 
 const getStorageKey = 'finance-dashboard-store-v1'
@@ -18,11 +29,19 @@ export const useFinanceStore = create(
       role: 'viewer',
       theme: 'light',
       filters: defaultFilters,
+      budgets: defaultBudgets,
       transactions: seedTransactions,
       setRole: (role) => set({ role }),
       toggleTheme: () => set({ theme: get().theme === 'light' ? 'dark' : 'light' }),
       setFilters: (nextFilters) => set({ filters: { ...get().filters, ...nextFilters } }),
       resetFilters: () => set({ filters: defaultFilters }),
+      setCategoryBudget: (category, amount) =>
+        set({
+          budgets: {
+            ...get().budgets,
+            [category]: amount,
+          },
+        }),
       addTransaction: (transaction) =>
         set({
           transactions: [
@@ -51,6 +70,7 @@ export const useFinanceStore = create(
         role: state.role,
         theme: state.theme,
         filters: state.filters,
+        budgets: state.budgets,
         transactions: state.transactions,
       }),
     },
