@@ -23,11 +23,47 @@ pip install -r requirements.txt
 cp .env.example .env
 # edit .env: set DATABASE_URL, JWT_SECRET_KEY (generate with the command
 # in the comment above it in .env.example), and GEMINI_API_KEY
+```
 
-# Make sure Postgres is running and the DB/user in DATABASE_URL exist, e.g.:
-#   createuser financelens -P
-#   createdb financelens -O financelens
+### Database: Postgres via Docker
 
+The easiest way to get Postgres running locally — no `createuser`/`createdb`
+client tools needed, no system `postgres` user, works the same on macOS,
+Linux, and WSL:
+
+```bash
+docker run --name financelens-db \
+  -e POSTGRES_USER=financelens \
+  -e POSTGRES_PASSWORD=financelens \
+  -e POSTGRES_DB=financelens \
+  -p 5432:5432 \
+  -d postgres:16
+```
+
+Verify it's up: `docker ps` should show `financelens-db` as `Up`.
+
+This matches the `DATABASE_URL` default already in `.env.example`:
+```
+DATABASE_URL=postgresql+psycopg2://financelens:financelens@localhost:5432/financelens
+```
+So if you use the command above as-is, you don't need to touch `DATABASE_URL`.
+
+Managing the container day to day:
+- Stop it: `docker stop financelens-db`
+- Start it again later (data persists in the container): `docker start financelens-db`
+- Wipe it completely and start fresh: `docker rm -f financelens-db`, then
+  re-run the `docker run` command above
+
+If port 5432 is already taken by something else on your machine, change the
+host-side port (`-p 5433:5432`) and update `DATABASE_URL`'s port to match.
+
+If you'd rather install Postgres natively instead of using Docker, that
+works too — just make sure the user/database in `DATABASE_URL` actually
+exist before running migrations.
+
+### Run the migrations and start the server
+
+```bash
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
@@ -88,24 +124,34 @@ rather than raising, so a missing/broken Gemini key never blocks an import;
 transactions just sit uncategorized until the user fixes it or categorizes
 manually.
 
-## ⚠️ Known limitation: PDF parser is unverified against a real statement
+## PDF parser status: verified against a real PhonePe statement
 
-`services/pdf_parser.py` was built against my best understanding of
-PhonePe's exported-statement text layout and tested only against a
-**synthetic PDF I generated** to match that expected format — not a real
-PhonePe export. Real statements will very likely differ in spacing,
-exact wording, or how the ₹ symbol is encoded (my test PDF actually hit
-this: Helvetica doesn't have a ₹ glyph, so the amount regex had to be
-made currency-symbol-optional to be robust either way).
+`services/pdf_parser.py` was originally built against a guessed layout and
+tested only against a synthetic PDF — that version did NOT work against a
+real export. It's since been rewritten against the real, confirmed
+structure (verified via a masked diagnostic script, redacting amounts and
+merchant names while preserving line shape) and now parses a real PhonePe
+statement successfully.
 
-**Before relying on this for your actual demo/data**: export a real
-PhonePe statement PDF, run it through `parse_phonepe_statement()`
-directly (see the inline test pattern used during development — load the
-PDF, print `pdf.pages[0].extract_text()` to see the raw text pdfplumber
-extracts, compare against what the regexes in `pdf_parser.py` expect) and
-adjust the regexes to match. The architecture around it (dedup,
-categorization, DB writes) doesn't need to change — only the parsing
-regexes are PhonePe-format-specific.
+**Known open issue: categorization quality.** Parsing and import work
+correctly, but the categories Gemini assigns to real merchant names aren't
+reliable yet — still to be improved. Likely directions worth trying later:
+tightening the categorization prompt in `services/categorization.py`,
+expanding/adjusting the category list in `models/category.py`, or adding
+a few-shot examples of real (anonymized) merchant strings to the prompt.
+Not blocking — transactions still import and can be recategorized manually
+via `PATCH /transactions/{id}` — just not accurate enough yet to rely on
+as-is.
+
+If PhonePe changes their export format again in the future, or you need
+to support GPay/Paytm/bank statements too, `diagnose_pdf.py` (a small
+script that prints a PDF's line structure with amounts and merchant names
+masked to `N`/`XXXX`) is the fastest way to see the new layout without
+exposing real financial data — paste the masked output back for the
+regexes in `pdf_parser.py` to be updated against it. Each source would get
+its own `parse_<source>_statement()` function following the same
+`ParsedTransaction` interface; the rest of the pipeline (dedup,
+categorization, DB writes) doesn't change per source.
 
 ## Device-capture contract for the Android app
 
@@ -139,13 +185,14 @@ it needs to follow:
 Verified end-to-end with real HTTP requests against a live Postgres
 instance during development: full auth flow, accounts, categories,
 transactions (CRUD + filters/search/sort/pagination + export), the full
-PDF upload→parse→dedup→categorize pipeline (against the synthetic PDF
-caveat above), device registration + capture + cross-source dedup against
-a PDF-sourced transaction, dashboard summary/trend/breakdown, budgets +
-budget-vs-actual, upcoming-bills detection, and the cashflow heatmap.
+PDF upload→parse→dedup→categorize pipeline (now confirmed against a real
+PhonePe statement, not just synthetic data), device registration + capture
++ cross-source dedup against a PDF-sourced transaction, dashboard
+summary/trend/breakdown, budgets + budget-vs-actual, upcoming-bills
+detection, and the cashflow heatmap.
 
-Not yet built: the actual Android Accessibility Service app, and the React
-frontend. This repo is backend-only.
+Not yet built: the actual Android Accessibility Service app. The React
+frontend exists in a separate `financelens-frontend` repo.
 
 ## Role-based access
 
