@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-display: 'Fraunces', serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  --color-ink-950: #0F1419;
+  --color-ink-900: #161C24;
+  --color-ink-850: #1B222C;
+  --color-ink-800: #1F2730;
+  --color-ink-700: #2A3340;
+  --color-ink-600: #3C4857;
+
+  --color-paper: #F5F3EE;
+  --color-paper-dim: #A8AFB8;
+  --color-paper-faint: #6B7280;
+
+  --color-signal: #7C9A92;
+  --color-signal-dim: #5C7971;
+  --color-amber: #D4A24C;
+  --color-amber-dim: #A17D3A;
+  --color-coral: #E0624C;
+  --color-coral-dim: #B54F3D;
+
+  --radius-card: 0.625rem;
+}
+
+* {
+  border-color: var(--color-ink-700);
+}
+
+body {
+  background: var(--color-ink-950);
+  color: var(--color-paper);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-signal);
+  color: var(--color-ink-950);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-ink-700);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-600);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
