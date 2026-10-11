@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useCaptureStore } from '../store/captureStore'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Wallet } from 'lucide-react'
 import { dashboardApi } from '../api/dashboard'
@@ -28,8 +29,10 @@ export function DashboardPage() {
 
   const now = new Date()
 
-  const load = useCallback(() => {
-    setLoading(true)
+  const dataVersion = useCaptureStore((s) => s.dataVersion)
+
+  const load = useCallback((silent = false) => {
+    if (!silent) setLoading(true)
     accountsApi.list().then((accounts) => {
       setHasAccounts(accounts.length > 0)
       if (accounts.length === 0) {
@@ -56,8 +59,8 @@ export function DashboardPage() {
   }, [])
 
   useEffect(() => {
-    load()
-  }, [load])
+    load(dataVersion > 0)
+  }, [load, dataVersion])
 
   if (loading) {
     return (
@@ -85,7 +88,7 @@ export function DashboardPage() {
             }
           />
         </Card>
-        <CreateAccountModal open={accountModalOpen} onClose={() => setAccountModalOpen(false)} onCreated={load} />
+        <CreateAccountModal open={accountModalOpen} onClose={() => setAccountModalOpen(false)} onCreated={() => load()} />
       </div>
     )
   }

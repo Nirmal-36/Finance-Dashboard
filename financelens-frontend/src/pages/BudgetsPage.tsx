@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useCaptureStore } from '../store/captureStore'
 import { Plus, Wallet } from 'lucide-react'
 import { dashboardApi } from '../api/dashboard'
 import { categoriesApi } from '../api/accounts'
@@ -21,8 +22,10 @@ export function BudgetsPage() {
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
 
-  const load = useCallback(() => {
-    setLoading(true)
+  const dataVersion = useCaptureStore((s) => s.dataVersion)
+
+  const load = useCallback((silent = false) => {
+    if (!silent) setLoading(true)
     dashboardApi
       .budgetVsActual(year, month)
       .then(setItems)
@@ -30,8 +33,8 @@ export function BudgetsPage() {
   }, [year, month])
 
   useEffect(() => {
-    load()
-  }, [load])
+    load(dataVersion > 0)
+  }, [load, dataVersion])
 
   useEffect(() => {
     categoriesApi.list().then(setCategories)
@@ -85,7 +88,7 @@ export function BudgetsPage() {
       <BudgetFormModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSaved={load}
+        onSaved={() => load()}
         categories={availableCategories}
         year={year}
         month={month}

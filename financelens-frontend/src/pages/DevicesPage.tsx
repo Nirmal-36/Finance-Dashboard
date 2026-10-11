@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Smartphone, Trash2 } from 'lucide-react'
+import { Link2, Plus, Smartphone, Trash2 } from 'lucide-react'
 import { devicesApi } from '../api/uploads'
 import type { Device } from '../types'
 import { PageHeader, Card, Spinner, EmptyState, Badge } from '../components/ui/Primitives'
@@ -7,6 +7,9 @@ import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
 import { DeviceKeyModal } from '../components/devices/DeviceKeyModal'
+import { ConnectDeviceModal } from '../components/devices/ConnectDeviceModal'
+import { useCaptureStore } from '../store/captureStore'
+import { CaptureSimulator } from '../components/devices/CaptureSimulator'
 import { formatDate } from '../lib/format'
 import { getErrorMessage } from '../api/client'
 
@@ -17,17 +20,40 @@ export function DevicesPage() {
   const [deviceName, setDeviceName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [connectOpen, setConnectOpen] = useState(false)
+  const connected = useCaptureStore((s) => s.device)
+  const connect = useCaptureStore((s) => s.connect)
+  const dataVersion = useCaptureStore((s) => s.dataVersion)
   const [newKey, setNewKey] = useState<{ name: string; key: string } | null>(null)
 
-  function load() {
-    setLoading(true)
+  function load(silent = false) {
+    if (!silent) setLoading(true)
     devicesApi
       .list()
       .then(setDevices)
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(() => load(), [])
+
+  // Devices are also registered/revoked from the phone, so keep this list in
+  // sync: refetch when the tab regains focus and every 10s while visible.
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'visible') load(true)
+    }
+    const timer = setInterval(refresh, 10000)
+    window.addEventListener('focus', refresh)
+    return () => {
+      clearInterval(timer)
+      window.removeEventListener('focus', refresh)
+    }
+  }, [])
+
+  // Refresh "last seen" as the simulated device sends data.
+  useEffect(() => {
+    if (dataVersion > 0) load(true)
+  }, [dataVersion])
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
@@ -58,11 +84,18 @@ export function DevicesPage() {
         title="Devices"
         subtitle="Manage phones running the FinanceLens companion app"
         action={
-          <Button icon={<Plus className="h-4 w-4" />} onClick={() => setRegisterOpen(true)}>
-            Register device
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" icon={<Link2 className="h-4 w-4" />} onClick={() => setConnectOpen(true)}>
+              Connect with code
+            </Button>
+            <Button icon={<Plus className="h-4 w-4" />} onClick={() => setRegisterOpen(true)}>
+              Register device
+            </Button>
+          </div>
         }
       />
+
+      {connected && <CaptureSimulator />}
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
@@ -111,6 +144,15 @@ export function DevicesPage() {
           ))}
         </Card>
       )}
+
+      <ConnectDeviceModal
+        open={connectOpen}
+        onClose={() => setConnectOpen(false)}
+        onConnected={(device) => {
+          setConnectOpen(false)
+          connect(device)
+        }}
+      />
 
       <Modal open={registerOpen} onClose={() => setRegisterOpen(false)} title="Register a device">
         <form onSubmit={handleRegister} className="space-y-4">

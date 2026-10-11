@@ -1,5 +1,6 @@
-import { api } from './client'
-import type { Device, DeviceRegisterResponse, StatementUpload } from '../types'
+import axios from 'axios'
+import { api, BASE_URL } from './client'
+import type { Device, DeviceCaptureRequest, DeviceCaptureResponse, DeviceRegisterResponse, StatementUpload } from '../types'
 
 export const uploadsApi = {
   upload: (accountId: string, file: File) => {
@@ -20,4 +21,13 @@ export const devicesApi = {
   register: (device_name: string) =>
     api.post<DeviceRegisterResponse>('/devices/register', { device_name }).then((r) => r.data),
   revoke: (id: string) => api.delete(`/devices/${id}`),
+  // Unauthenticated by design — the one-time code is the credential. Uses a
+  // bare axios call so a failure never triggers the JWT refresh/redirect flow.
+  pair: (code: string) =>
+    axios.post<DeviceRegisterResponse>(`${BASE_URL}/devices/pair`, { code }).then((r) => r.data),
+  // Device-key authenticated (what the phone's capture service would send).
+  ingest: (apiKey: string, body: DeviceCaptureRequest) =>
+    axios
+      .post<DeviceCaptureResponse>(`${BASE_URL}/devices/ingest`, body, { headers: { 'X-Device-Key': apiKey } })
+      .then((r) => r.data),
 }

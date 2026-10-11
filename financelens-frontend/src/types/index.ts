@@ -161,6 +161,21 @@ export interface DeviceRegisterResponse {
   api_key: string
 }
 
+export interface DeviceCaptureRequest {
+  account_id: string
+  amount: string
+  type: TransactionType
+  txn_timestamp: string
+  merchant_raw: string
+  reference_id: string
+}
+
+export interface DeviceCaptureResponse {
+  accepted: boolean
+  duplicate: boolean
+  transaction_id: string | null
+}
+
 export interface ApiError {
   detail: string
 }

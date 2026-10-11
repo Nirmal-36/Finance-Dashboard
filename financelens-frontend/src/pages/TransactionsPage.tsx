@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useCaptureStore } from '../store/captureStore'
 import { useSearchParams } from 'react-router-dom'
 import { Plus, Receipt, ArrowUpDown } from 'lucide-react'
 import { transactionsApi } from '../api/transactions'
@@ -31,8 +32,10 @@ export function TransactionsPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Transaction | null>(null)
 
-  const load = useCallback(() => {
-    setLoading(true)
+  const dataVersion = useCaptureStore((s) => s.dataVersion)
+
+  const load = useCallback((silent = false) => {
+    if (!silent) setLoading(true)
     transactionsApi
       .list(filters)
       .then(setData)
@@ -40,8 +43,8 @@ export function TransactionsPage() {
   }, [filters])
 
   useEffect(() => {
-    load()
-  }, [load])
+    load(dataVersion > 0)
+  }, [load, dataVersion])
 
   useEffect(() => {
     accountsApi.list().then(setAccounts)
@@ -136,7 +139,7 @@ export function TransactionsPage() {
       <TransactionFormModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSaved={load}
+        onSaved={() => load()}
         accounts={accounts}
         categories={categories}
         editing={editing}
