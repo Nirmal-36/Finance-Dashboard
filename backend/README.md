@@ -161,7 +161,18 @@ it needs to follow:
 1. **Once, interactively (user logged into the app):**
    `POST /api/v1/devices/register` with JWT auth, body `{"device_name": "..."}`
    → returns `{"id", "device_name", "api_key"}`. Store `api_key` in Android
-   Keystore immediately — it's never retrievable again.
+   Keystore immediately.
+
+   **Pairing codes (no copy-pasting keys):** `POST /api/v1/devices/{id}/pairing-code`
+   (JWT) returns `{"code", "expires_at"}` — a single-use 6-digit code valid for
+   3 minutes. An external tool exchanges it with the unauthenticated
+   `POST /api/v1/devices/pair` (body `{"code": "123456"}`) for the same
+   `{"id", "device_name", "api_key"}` shape. Invalid/expired/used codes return
+   400; repeated failures from one IP return 429. Keys are stored encrypted
+   (`DEVICE_KEY_ENCRYPTION_SECRET`) so they can be re-issued; devices registered
+   before this feature have no stored copy and must be re-registered.
+   `simulate_capture.py --pair-code 123456 --account-id <uuid> --burst 60`
+   uses this flow (`--api-key` still works as a fallback).
 
 2. **On every captured transaction (background, no user interaction):**
    `POST /api/v1/devices/ingest` with header `X-Device-Key: <stored key>`,

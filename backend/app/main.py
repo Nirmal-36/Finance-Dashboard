@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api.routes import auth, accounts, categories, transactions, uploads, dashboard, budgets, devices
+from app.api.routes import auth, accounts, categories, transactions, uploads, dashboard, budgets, devices, dev
 
 app = FastAPI(
     title="FinanceLens API",
@@ -26,6 +26,7 @@ app.include_router(uploads.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")
 app.include_router(budgets.router, prefix="/api/v1")
 app.include_router(devices.router, prefix="/api/v1")
+app.include_router(dev.router, prefix="/api/v1")
 
 
 @app.get("/health")

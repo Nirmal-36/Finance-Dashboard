@@ -37,6 +37,11 @@ class Settings(BaseSettings):
 
     # --- Device ingestion ---
     DEVICE_API_KEY_SALT: str = "dev-salt-change-me"
+    # Secret used to encrypt device API keys at rest so they can be handed
+    # out again through the pairing-code flow. Rotating it makes previously
+    # stored keys undecryptable (devices must then be re-registered).
+    DEVICE_KEY_ENCRYPTION_SECRET: str = "dev-device-key-encryption-secret-change-me"
+    PAIRING_CODE_TTL_SECONDS: int = 180
 
     @property
     def cors_origins_list(self) -> List[str]:

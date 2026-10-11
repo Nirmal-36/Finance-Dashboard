@@ -12,6 +12,7 @@ JSON-only response contract so parsing is reliable.
 """
 import json
 import logging
+import re
 from dataclasses import dataclass
 
 from google import genai
@@ -42,6 +43,56 @@ Example output: [{{"merchant_normalized": "Swiggy", "category": "Food & Dining",
 """
 
 
+# Used only when Gemini is unavailable (no/invalid key, outage, bad response),
+# so captured transactions still land in sensible categories and charts stay
+# meaningful. Order matters: first match wins.
+_KEYWORD_RULES: list[tuple[str, tuple[str, ...]]] = [
+    # Legal/entity names that UPI shows instead of the brand: Bundl = Swiggy, ANI = Ola,
+    # Eternal = Zomato/Blinkit, Innovative Retail = Blinkit-era Grofers, etc.
+    ("Food & Dining", ("swiggy", "bundl", "zomato", "eternal", "starbucks", "chai", "restaurant", "cafe", "dominos",
+                       "mcdonald", "kfc", "pizza", "biryani", "bakery", "hotel", "dhaba", "juice", "tea ")),
+    ("Groceries", ("blinkit", "bigbasket", "innovative retail", "kirana", "general store", "vegetable", "fruits",
+                   "grocery", "zepto", "kiranakart", "supermarket", "mart", "dmart", "avenue supermarts", "provision")),
+    ("Transport", ("uber", "ola", "ani technologies", "rapido", "petrol", "irctc", "metro", "fuel", "redbus",
+                   "fastag", "bpcl", "hpcl", "indian oil", "parking")),
+    ("Shopping", ("amazon", "flipkart", "myntra", "ajio", "meesho", "nykaa", "reliance retail", "trends", "lifestyle")),
+    ("Health & Fitness", ("pharmacy", "apollo", "medplus", "hospital", "gym", "clinic", "diagnostic", "pharmeasy",
+                          "1mg", "medical", "cult.fit")),
+    ("Entertainment", ("netflix", "spotify", "bookmyshow", "hotstar", "prime video", "pvr", "inox", "youtube", "sony liv")),
+    ("Education", ("school", "college", "university", "coursera", "udemy", "tuition", "byju", "unacademy")),
+    ("Investments", ("zerodha", "groww", "upstox", "mutual fund", "sip ", "nps", "coin by")),
+    ("Bills & Utilities", ("electricity", "bescom", "broadband", "airtel", "jio", "vodafone", "bsnl", "recharge",
+                           "water bill", "gas", "insurance", "act fibernet", "tata power", "billdesk")),
+    ("Rent & Housing", ("rent",)),
+    ("Income", ("salary", "interest credit", "cashback", "refund")),
+    ("Transfers", ("upi/",)),
+]
+
+
+_BUSINESS_HINTS = re.compile(
+    r"\b(pvt|ltd|limited|llp|inc|corp|technologies|services|enterprises|traders|store|stores|shop|mart|foods|"
+    r"solutions|systems|industries|bank|finance|hotel|restaurant|medical|agency|centre|center)\b|\d|@|\.",
+    re.IGNORECASE,
+)
+
+
+def _looks_like_person(name: str) -> bool:
+    """UPI payees that are people show up as 2-4 plain alphabetic words, e.g. 'SYEDA AAISHA TAHSEEN'."""
+    words = name.strip().split()
+    return 2 <= len(words) <= 4 and all(w.isalpha() for w in words) and not _BUSINESS_HINTS.search(name)
+
+
+def _keyword_category(merchant_raw: str) -> str:
+    text = merchant_raw.lower()
+    for category, keywords in _KEYWORD_RULES:
+        # Match at word starts only, so "ola" hits "Ola Cabs" but not "Coca Cola".
+        if any(re.search(rf"(?<![a-z0-9]){re.escape(k.strip())}", text) for k in keywords):
+            return category
+    if _looks_like_person(merchant_raw):
+        return "Transfers"
+    return "Other"
+
+
 @dataclass
 class CategorizationResult:
     merchant_normalized: str
@@ -61,7 +112,7 @@ def categorize_batch(merchant_raws: list[str]) -> list[CategorizationResult]:
     """
     Categorizes a batch of raw merchant strings in a single Gemini call.
     On any failure (API error, malformed response, count mismatch), falls
-    back to "Other" with 0 confidence for every item in the batch rather
+    back to keyword-matched categories with 0 confidence for every item in the batch rather
     than raising — a categorization failure should never block a PDF
     import or device-capture ingestion from completing; transactions just
     stay PENDING and the user categorizes manually.
@@ -69,7 +120,10 @@ def categorize_batch(merchant_raws: list[str]) -> list[CategorizationResult]:
     if not merchant_raws:
         return []
 
-    fallback = [CategorizationResult(merchant_normalized=m, category_name="Other", confidence=0.0) for m in merchant_raws]
+    fallback = [
+        CategorizationResult(merchant_normalized=m, category_name=_keyword_category(m), confidence=0.0)
+        for m in merchant_raws
+    ]
 
     try:
         client = _get_client()

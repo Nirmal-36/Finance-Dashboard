@@ -12,10 +12,19 @@ class DeviceRegisterRequest(BaseModel):
 
 
 class DeviceRegisterResponse(BaseModel):
-    """api_key is returned ONLY on registration — never retrievable again."""
+    """api_key is returned on registration and by POST /devices/pair (pairing code)."""
     id: uuid.UUID
     device_name: str
     api_key: str
+
+
+class PairingCodeResponse(BaseModel):
+    code: str
+    expires_at: datetime
+
+
+class DevicePairRequest(BaseModel):
+    code: str = Field(max_length=32)
 
 
 class DeviceOut(BaseModel):

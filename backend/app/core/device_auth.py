@@ -16,10 +16,14 @@ stolen database doesn't leak usable keys. Every device-capture request
 must include this key in an `X-Device-Key` header; we hash the
 presented key and look up the matching Device row.
 """
+import base64
 import hashlib
 import secrets
 
 import bcrypt
+from cryptography.fernet import Fernet, InvalidToken
+
+from app.core.config import settings
 
 _KEY_BYTES = 32  # 256 bits of entropy
 
@@ -43,3 +47,30 @@ def verify_device_api_key(plain_key: str, hashed_key: str) -> bool:
         return bcrypt.checkpw(digest.encode("utf-8"), hashed_key.encode("utf-8"))
     except (ValueError, TypeError):
         return False
+
+
+# ---------------------------------------------------------------------------
+# Reversible storage for the pairing-code flow
+#
+# The bcrypt hash above is all that's needed to *authenticate* a key, but it
+# can't give the key back. The pairing-code flow needs to re-issue the same
+# key, so an encrypted (Fernet/AES) copy is stored alongside the hash. The
+# trade-off: a database leak together with DEVICE_KEY_ENCRYPTION_SECRET
+# exposes keys, whereas the hash alone does not.
+# ---------------------------------------------------------------------------
+
+def _fernet() -> Fernet:
+    key = base64.urlsafe_b64encode(hashlib.sha256(settings.DEVICE_KEY_ENCRYPTION_SECRET.encode("utf-8")).digest())
+    return Fernet(key)
+
+
+def encrypt_device_api_key(plain_key: str) -> str:
+    return _fernet().encrypt(plain_key.encode("utf-8")).decode("utf-8")
+
+
+def decrypt_device_api_key(encrypted_key: str) -> str | None:
+    """Returns None if the token is corrupt or the secret has been rotated."""
+    try:
+        return _fernet().decrypt(encrypted_key.encode("utf-8")).decode("utf-8")
+    except (InvalidToken, ValueError, TypeError):
+        return None

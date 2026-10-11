@@ -16,4 +16,4 @@ from app.models.transaction import (                             # noqa: F401
 )
 from app.models.budget import Budget                              # noqa: F401
 from app.models.statement_upload import StatementUpload, UploadStatus  # noqa: F401
-from app.models.device import Device                              # noqa: F401
+from app.models.device import Device, DevicePairingCode          # noqa: F401
